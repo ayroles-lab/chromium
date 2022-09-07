@@ -2,6 +2,8 @@
 ####MiSeq QC pipeline####
 #########################
 
+# Some more notes
+
 #General notes
 #Note that there are a few steps here (cd'ing around, moving outfiles, etc.) that are omitted, so this should not run as one code chunk
 #However, it should serve as a guide to following my QC pipeline
