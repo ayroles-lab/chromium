@@ -1,0 +1,3 @@
+[submodule "submodules/longevity"]
+	path = submodules/longevity
+	url = https://github.com/Wolfffff/longevity.git

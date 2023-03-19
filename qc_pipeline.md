@@ -25,6 +25,9 @@ wget -r -nH --cut-dirs=2 https://htseq.princeton.edu/tmp/TnBqsapOSuw9gLjCH/
 ```bash
 awk '{print $1 "\t" $2 "-" $3}' < longevity_barcodes_all.tsv > barcodes_fmtd.fil
 ```
+```bash
+awk '{print $1}' < barcodes_fmtd.fil > ../00_resources/sample_ids.txt
+```
 
 ### Run the demultiplexing (fastq-multx) directly on argo
 ```bash
@@ -41,10 +44,19 @@ awk '{print $1 "\t" $2 "-" $3}' < longevity_barcodes_all.tsv > barcodes_fmtd.fil
 ```
 
 ## Trim Galore (https://www.bioinformatics.babraham.ac.uk/projects/trim_galore/)
-
 ```bash
-awk '{print $1}' < barcodes_fmtd.fil > ../00_resources/sample_ids.txt
+while IFS='$\t' read -r id
+do
+sbatch --wrap="\
+/Genomics/grid/users/ed7982/TrimGalore-0.6.6/trim_galore \
+--path_to_cutadapt /Genomics/grid/users/ed7982/.local/bin/cutadapt \
+--paired \
+--basename ${id} \
+/scratch/tmp/ed7982/chromium/miseq/02_demultiplexed_fastqs/${id}_R1.fastq \
+/scratch/tmp/ed7982/chromium/miseq/02_demultiplexed_fastqs/${id}_R2.fastq"
+done < ../00_resources/sample_ids.txt
 ```
+
 
 ## Align to reference genome BWA
 
