@@ -2,13 +2,12 @@ library(tidyverse)
 library(ggplot2)
 
 
-indiv_chr_counts = grep("*chromosome_coverage", list.files("/scratch/tmp/swwolf/longevity", full.names = TRUE), value = TRUE)
+indiv_chr_counts = grep("*chromosome_coverage", list.files("/scratch/tmp/swwolf/longevity/", full.names = TRUE), value = TRUE)
 
 df = data.frame()
 
 for (i in 1:length(indiv_chr_counts)) {
-  chr_counts = read_tsv(indiv_chr_counts[i], col_names=FALSE) %>% 
-    rename(chr = X1, count = X2)
+  chr_counts = read_tsv(indiv_chr_counts[i], col_names=FALSE,show_col_types = FALSE) %>% dplyr::rename(chr = X1, count = X2)
     freq_x = chr_counts$count[chr_counts$chr == "X"]/sum(chr_counts$count[chr_counts$chr != "X"])
     name = gsub(indiv_chr_counts[i], pattern = "*.chromosome_coverage.tsv", replacement = "")
     name = gsub(name, pattern = "/scratch/tmp/swwolf/longevity/", replacement = "")
@@ -21,6 +20,7 @@ threshold = 0.175
 x_read_freq_dist = ggplot(df, aes(x = freq_x)) +
     geom_vline(xintercept = threshold, linetype = "dashed", color = "red") +
     geom_histogram(bins = 100) +
+    xlim(1, 0.25)
     theme_minimal() + theme(legend.position = "none") +
     xlab("Frequency of X chromosome reads") + ylab("Number of individuals") +
     ggtitle("Distribution of X chromosome read frequencies")
