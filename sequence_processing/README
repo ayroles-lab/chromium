@@ -1,0 +1,27 @@
+This repository contains code related to:
+
+Diet unmasks genetic variants that regulate lifespan in outbred Drosophila
+L Pallares*, AJ Lea*, et al.
+https://www.biorxiv.org/content/10.1101/2020.10.19.346312v2
+
+Specifically, the processing steps that are described here are:
+
+1) Trimming, mapping, and genotyping each sequence data derived from each sample
+2) Joint genotyping all samples together (by chromosome)
+3) Extracting counts of the number of reads that mapped to the reference and alternate allele for each sample
+
+And the analyses that are described here are:
+
+1) Using a beta binomial model to test for allele frequency differences between t0 and tN in each environment
+2) Permutations of the factor of interest (t0, tN_HS, tN_CTRL) in the beta binomial model
+3) Estimating the allele frequency change between t0 and tN from model coefficents
+4) Simulating data to be analyzed using a beta binomial vs CMH approach
+5) Testing to see if lifespan associated SNPs followed particular trajectories hypothesized by different theories of aging
+6) Testing whether lifespan decreasing alleles are more likely to be derived vs ancestral, relative to frequency matched sites
+
+Additional code can be found at: https://github.com/Lufpa/Longevity
+
+Data files pointed to in these scripts (as well as additional summary files) are available on Dryad: doi:10.5061/dryad.hhmgqnkgr. 
+Note that the specific paths in the scripts will not work on your computer and you will need to change them accordingly.
+
+Please contact me at amandalea7180@gmail.com with any questions.
