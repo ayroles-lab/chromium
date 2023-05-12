@@ -1,0 +1,5 @@
+rule trim_seq_adapters:
+        input:
+        output:
+        params:
+        shell: 

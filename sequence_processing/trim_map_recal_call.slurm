@@ -4,9 +4,9 @@
 #SBATCH --error=logs/trim_map_recal_call_%A_%a.err      # STDERR file
 #SBATCH --nodes=1                                       # Node count
 #SBATCH --ntasks=1                                      # Number of tasks across all nodes
-#SBATCH --cpus-per-task=4                               # Cores per task (>1 if multi-threaded tasks)
+#SBATCH --cpus-per-task=4                              # Cores per task (>1 if multi-threaded tasks)
 #SBATCH --mem=64G                                       # total memory per node
-#SBATCH --array=1-2880                                  # Number of jobs % Max number of jobs to consume
+#SBATCH --array=1-2880 #=96*30                              # Number of jobs % Max number of jobs to consume
 #SBATCH --time=1-00:00:00                               # Run time limit (HH:MM:SS)
 #SBATCH --mail-type=all                                 # Email on job start, end, and fault
 #SBATCH --mail-user=swwolf@princeton.edu
@@ -14,7 +14,7 @@
 module load conda
 module load samtools
 
-conda activate crvi
+# conda activate crvi_ca
 
 export SAMPLEINFO=$(sed "${SLURM_ARRAY_TASK_ID}q;d" list_of_samples.txt)
 echo $SAMPLEINFO
