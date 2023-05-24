@@ -1,0 +1,266 @@
+Run "cutadapt --help" to see command-line options.
+See https://cutadapt.readthedocs.io/ for full documentation.
+
+cutadapt: error: pigz: skipping: /Genomics/ayroleslab2/scott/git/chromium/data/raw/-read-1.fastq.gz does not exist
+/var/spool/slurmd/job904774/slurm_script: line 37: samtools: command not found
+/var/spool/slurmd/job904774/slurm_script: line 37: samtools: command not found
+[M::bwa_idx_load_from_disk] read 0 ALT contigs
+/var/spool/slurmd/job904774/slurm_script: line 38: samtools: command not found
+/var/spool/slurmd/job904774/slurm_script: line 39: samtools: command not found
+/var/spool/slurmd/job904774/slurm_script: line 40: samtools: command not found
+/var/spool/slurmd/job904774/slurm_script: line 41: samtools: command not found
+INFO	2023-05-22 12:02:43	MarkDuplicates	
+
+********** NOTE: Picard's command line syntax is changing.
+**********
+********** For more information, please see:
+********** 
+https://github.com/broadinstitute/picard/wiki/Command-Line-Syntax-Transition-For-Users-(Pre-Transition)
+**********
+********** The command line looks like this in the new syntax:
+**********
+**********    MarkDuplicates -I /Genomics/ayroleslab2/scott/git/chromium/data/raw/_sort_uniq_filt_to_chr_sort.bam -O /Genomics/ayroleslab2/scott/git/chromium/data/raw/_sort_uniq_dedup.bam -M /Genomics/ayroleslab2/scott/git/chromium/data/raw/_sort_uniq_dedup.txt
+**********
+
+
+12:02:44.733 INFO  NativeLibraryLoader - Loading libgkl_compression.so from jar:file:/Genomics/ayroleslab2/scott/git/chromium/tools/picard.jar!/com/intel/gkl/native/libgkl_compression.so
+[Mon May 22 12:02:44 EDT 2023] MarkDuplicates INPUT=[/Genomics/ayroleslab2/scott/git/chromium/data/raw/_sort_uniq_filt_to_chr_sort.bam] OUTPUT=/Genomics/ayroleslab2/scott/git/chromium/data/raw/_sort_uniq_dedup.bam METRICS_FILE=/Genomics/ayroleslab2/scott/git/chromium/data/raw/_sort_uniq_dedup.txt    MAX_SEQUENCES_FOR_DISK_READ_ENDS_MAP=50000 MAX_FILE_HANDLES_FOR_READ_ENDS_MAP=8000 SORTING_COLLECTION_SIZE_RATIO=0.25 TAG_DUPLICATE_SET_MEMBERS=false REMOVE_SEQUENCING_DUPLICATES=false TAGGING_POLICY=DontTag CLEAR_DT=true DUPLEX_UMI=false FLOW_MODE=false FLOW_QUALITY_SUM_STRATEGY=false USE_END_IN_UNPAIRED_READS=false USE_UNPAIRED_CLIPPED_END=false UNPAIRED_END_UNCERTAINTY=0 FLOW_SKIP_FIRST_N_FLOWS=0 FLOW_Q_IS_KNOWN_END=false FLOW_EFFECTIVE_QUALITY_THRESHOLD=15 ADD_PG_TAG_TO_READS=true REMOVE_DUPLICATES=false ASSUME_SORTED=false DUPLICATE_SCORING_STRATEGY=SUM_OF_BASE_QUALITIES PROGRAM_RECORD_ID=MarkDuplicates PROGRAM_GROUP_NAME=MarkDuplicates READ_NAME_REGEX=<optimized capture of last three ':' separated fields as numeric values> OPTICAL_DUPLICATE_PIXEL_DISTANCE=100 MAX_OPTICAL_DUPLICATE_SET_SIZE=300000 VERBOSITY=INFO QUIET=false VALIDATION_STRINGENCY=STRICT COMPRESSION_LEVEL=5 MAX_RECORDS_IN_RAM=500000 CREATE_INDEX=false CREATE_MD5_FILE=false GA4GH_CLIENT_SECRETS=client_secrets.json USE_JDK_DEFLATER=false USE_JDK_INFLATER=false
+[Mon May 22 12:02:44 EDT 2023] Executing as swwolf@argo-18 on Linux 4.18.0-305.12.1.el8_4.x86_64 amd64; OpenJDK 64-Bit Server VM 1.8.0_302-b08; Deflater: Intel; Inflater: Intel; Provider GCS is not available; Picard version: 2.27.5
+INFO	2023-05-22 12:02:44	MarkDuplicates	Start of doWork freeMemory: 25342880; totalMemory: 32571392; maxMemory: 41518039040
+INFO	2023-05-22 12:02:44	MarkDuplicates	Reading input file and constructing read end information.
+INFO	2023-05-22 12:02:44	MarkDuplicates	Will retain up to 150427677 data points before spilling to disk.
+/var/spool/slurmd/job904774/slurm_script: line 49: 2338892 Killed                  java -Xmx40g -jar $picard_DIR MarkDuplicates I=$tmp_DIR/${SAMPLEINFO}_sort_uniq_filt_to_chr_sort.bam O=$tmp_DIR/${SAMPLEINFO}_sort_uniq_dedup.bam M=$tmp_DIR/${SAMPLEINFO}_sort_uniq_dedup.txt
+
+sambamba 1.0.0
+ by Artem Tarasov and Pjotr Prins (C) 2012-2022
+    LDC 1.28.1 / DMD v2.098.1 / LLVM12.0.0 / bootstrap LDC - the LLVM D compiler (1.28.1)
+
+sambamba-index: Cannot open or create file '/Genomics/ayroleslab2/scott/git/chromium/data/raw/_sort_uniq_dedup.bam' : No such file or directory
+INFO	2023-05-22 12:02:48	AddOrReplaceReadGroups	
+
+********** NOTE: Picard's command line syntax is changing.
+**********
+********** For more information, please see:
+********** 
+https://github.com/broadinstitute/picard/wiki/Command-Line-Syntax-Transition-For-Users-(Pre-Transition)
+**********
+********** The command line looks like this in the new syntax:
+**********
+**********    AddOrReplaceReadGroups -I /Genomics/ayroleslab2/scott/git/chromium/data/raw/_sort_uniq_dedup.bam -O /Genomics/ayroleslab2/scott/git/chromium/data/raw/_sort_uniq_dedup_rg.bam -SO coordinate -RGLB  -RGPL illumina -RGPU longevity -RGSM 
+**********
+
+
+ERROR: Option 'RGPL' is required.
+
+USAGE: AddOrReplaceReadGroups [options]
+
+Documentation: http://broadinstitute.github.io/picard/command-line-overview.html#AddOrReplaceReadGroups
+
+Assigns all the reads in a file to a single new read-group.
+
+This tool accepts INPUT BAM and SAM files or URLs from the Global Alliance for Genomics and Health (GA4GH)
+(http://ga4gh.org/#/documentation).
+
+Usage example:
+
+java -jar picard.jar AddOrReplaceReadGroups \
+I=input.bam \
+O=output.bam \
+RGID=4 \
+RGLB=lib1 \
+RGPL=ILLUMINA \
+RGPU=unit1 \
+RGSM=20
+
+
+Caveats
+
+The value of the tags must adhere (according to the SAM-spec (https://samtools.github.io/hts-specs/SAMv1.pdf)) with the
+regex '^[ -~]+$'</code> (one or more characters from the ASCII range 32 through 126). In particular <Space> is the only
+non-printing character allowed.
+
+The program enables only the wholesale assignment of all the reads in the INPUT to a single read-group. If your file
+already has reads assigned to multiple read-groups, the original RG value will be lost. 
+
+For more information about read-groups, see the GATK Dictionary entry.
+(https://www.broadinstitute.org/gatk/guide/article?id=6472)
+Version: 2.27.5
+
+
+Options:
+
+--help
+-h                            Displays options specific to this tool.
+
+--stdhelp
+-H                            Displays options specific to this tool AND options common to all Picard command line
+                              tools.
+
+--version                     Displays program version.
+
+INPUT=String
+I=String                      Input file (BAM or SAM or a GA4GH url).  Required. 
+
+OUTPUT=File
+O=File                        Output file (SAM, BAM or CRAM).  Required. 
+
+SORT_ORDER=SortOrder
+SO=SortOrder                  Optional sort order to output in. If not supplied OUTPUT is in the same order as INPUT. 
+                              Default value: null. Possible values: {unsorted, queryname, coordinate, duplicate,
+                              unknown} 
+
+RGID=String
+ID=String                     Read-Group ID  Default value: 1. This option can be set to 'null' to clear the default
+                              value. 
+
+RGLB=String
+LB=String                     Read-Group library  Required. 
+
+RGPL=String
+PL=String                     Read-Group platform (e.g. ILLUMINA, SOLID)  Required. 
+
+RGPU=String
+PU=String                     Read-Group platform unit (eg. run barcode)  Required. 
+
+RGSM=String
+SM=String                     Read-Group sample name  Required. 
+
+RGCN=String
+CN=String                     Read-Group sequencing center name  Default value: null. 
+
+RGDS=String
+DS=String                     Read-Group description  Default value: null. 
+
+RGDT=Iso8601Date
+DT=Iso8601Date                Read-Group run date  Default value: null. 
+
+RGKS=String
+KS=String                     Read-Group key sequence  Default value: null. 
+
+RGFO=String
+FO=String                     Read-Group flow order  Default value: null. 
+
+RGPI=Integer
+PI=Integer                    Read-Group predicted insert size  Default value: null. 
+
+RGPG=String
+PG=String                     Read-Group program group  Default value: null. 
+
+RGPM=String
+PM=String                     Read-Group platform model  Default value: null. 
+
+
+sambamba 1.0.0
+ by Artem Tarasov and Pjotr Prins (C) 2012-2022
+    LDC 1.28.1 / DMD v2.098.1 / LLVM12.0.0 / bootstrap LDC - the LLVM D compiler (1.28.1)
+
+sambamba-index: Cannot open or create file '/Genomics/ayroleslab2/scott/git/chromium/data/raw/_sort_uniq_dedup_rg.bam' : No such file or directory
+12:02:58.016 INFO  NativeLibraryLoader - Loading libgkl_compression.so from jar:file:/Genomics/ayroleslab2/scott/git/chromium/tools/gatk-package-4.3.0.0-local.jar!/com/intel/gkl/native/libgkl_compression.so
+12:02:59.009 INFO  BaseRecalibrator - ------------------------------------------------------------
+12:02:59.009 INFO  BaseRecalibrator - The Genome Analysis Toolkit (GATK) v4.3.0.0
+12:02:59.009 INFO  BaseRecalibrator - For support and documentation go to https://software.broadinstitute.org/gatk/
+12:02:59.009 INFO  BaseRecalibrator - Executing as swwolf@argo-18 on Linux v4.18.0-305.12.1.el8_4.x86_64 amd64
+12:02:59.009 INFO  BaseRecalibrator - Java runtime: OpenJDK 64-Bit Server VM v1.8.0_302-b08
+12:02:59.009 INFO  BaseRecalibrator - Start Date/Time: May 22, 2023 12:02:57 PM EDT
+12:02:59.009 INFO  BaseRecalibrator - ------------------------------------------------------------
+12:02:59.009 INFO  BaseRecalibrator - ------------------------------------------------------------
+12:02:59.010 INFO  BaseRecalibrator - HTSJDK Version: 3.0.1
+12:02:59.010 INFO  BaseRecalibrator - Picard Version: 2.27.5
+12:02:59.010 INFO  BaseRecalibrator - Built for Spark Version: 2.4.5
+12:02:59.010 INFO  BaseRecalibrator - HTSJDK Defaults.COMPRESSION_LEVEL : 2
+12:02:59.010 INFO  BaseRecalibrator - HTSJDK Defaults.USE_ASYNC_IO_READ_FOR_SAMTOOLS : false
+12:02:59.010 INFO  BaseRecalibrator - HTSJDK Defaults.USE_ASYNC_IO_WRITE_FOR_SAMTOOLS : true
+12:02:59.010 INFO  BaseRecalibrator - HTSJDK Defaults.USE_ASYNC_IO_WRITE_FOR_TRIBBLE : false
+12:02:59.010 INFO  BaseRecalibrator - Deflater: IntelDeflater
+12:02:59.010 INFO  BaseRecalibrator - Inflater: IntelInflater
+12:02:59.010 INFO  BaseRecalibrator - GCS max retries/reopens: 20
+12:02:59.010 INFO  BaseRecalibrator - Requester pays: disabled
+12:02:59.010 INFO  BaseRecalibrator - Initializing engine
+12:02:59.426 INFO  BaseRecalibrator - Shutting down engine
+[May 22, 2023 12:02:59 PM EDT] org.broadinstitute.hellbender.tools.walkers.bqsr.BaseRecalibrator done. Elapsed time: 0.02 minutes.
+Runtime.totalMemory()=32571392
+***********************************************************************
+
+A USER ERROR has occurred: Couldn't read file. Error was: /Genomics/ayroleslab2/scott/git/chromium/data/raw/_sort_uniq_dedup_rg.bam with exception: Cannot read non-existent file: file:///Genomics/ayroleslab2/scott/git/chromium/data/raw/_sort_uniq_dedup_rg.bam
+
+***********************************************************************
+Set the system property GATK_STACKTRACE_ON_USER_EXCEPTION (--java-options '-DGATK_STACKTRACE_ON_USER_EXCEPTION=true') to print the stack trace.
+Using GATK jar /Genomics/ayroleslab2/scott/git/chromium/tools/gatk-package-4.3.0.0-local.jar
+Running:
+    java -Dsamjdk.use_async_io_read_samtools=false -Dsamjdk.use_async_io_write_samtools=true -Dsamjdk.use_async_io_write_tribble=false -Dsamjdk.compression_level=2 -jar /Genomics/ayroleslab2/scott/git/chromium/tools/gatk-package-4.3.0.0-local.jar BaseRecalibrator -R /Genomics/ayroleslab2/scott/git/chromium/data/ref/dmel-all-chromosome-r6.49.fasta -I /Genomics/ayroleslab2/scott/git/chromium/data/raw/_sort_uniq_dedup_rg.bam -output /Genomics/ayroleslab2/scott/git/chromium/data/raw/.recal.table -known-sites /Genomics/ayroleslab2/scott/git/chromium/data/ref/dbSNP_Nex_Sep28.19.vcf
+12:03:02.174 INFO  NativeLibraryLoader - Loading libgkl_compression.so from jar:file:/Genomics/ayroleslab2/scott/git/chromium/tools/gatk-package-4.3.0.0-local.jar!/com/intel/gkl/native/libgkl_compression.so
+12:03:02.355 INFO  ApplyBQSR - ------------------------------------------------------------
+12:03:02.355 INFO  ApplyBQSR - The Genome Analysis Toolkit (GATK) v4.3.0.0
+12:03:02.356 INFO  ApplyBQSR - For support and documentation go to https://software.broadinstitute.org/gatk/
+12:03:02.356 INFO  ApplyBQSR - Executing as swwolf@argo-18 on Linux v4.18.0-305.12.1.el8_4.x86_64 amd64
+12:03:02.356 INFO  ApplyBQSR - Java runtime: OpenJDK 64-Bit Server VM v1.8.0_302-b08
+12:03:02.356 INFO  ApplyBQSR - Start Date/Time: May 22, 2023 12:03:02 PM EDT
+12:03:02.356 INFO  ApplyBQSR - ------------------------------------------------------------
+12:03:02.356 INFO  ApplyBQSR - ------------------------------------------------------------
+12:03:02.356 INFO  ApplyBQSR - HTSJDK Version: 3.0.1
+12:03:02.356 INFO  ApplyBQSR - Picard Version: 2.27.5
+12:03:02.356 INFO  ApplyBQSR - Built for Spark Version: 2.4.5
+12:03:02.356 INFO  ApplyBQSR - HTSJDK Defaults.COMPRESSION_LEVEL : 2
+12:03:02.356 INFO  ApplyBQSR - HTSJDK Defaults.USE_ASYNC_IO_READ_FOR_SAMTOOLS : false
+12:03:02.357 INFO  ApplyBQSR - HTSJDK Defaults.USE_ASYNC_IO_WRITE_FOR_SAMTOOLS : true
+12:03:02.357 INFO  ApplyBQSR - HTSJDK Defaults.USE_ASYNC_IO_WRITE_FOR_TRIBBLE : false
+12:03:02.357 INFO  ApplyBQSR - Deflater: IntelDeflater
+12:03:02.357 INFO  ApplyBQSR - Inflater: IntelInflater
+12:03:02.357 INFO  ApplyBQSR - GCS max retries/reopens: 20
+12:03:02.357 INFO  ApplyBQSR - Requester pays: disabled
+12:03:02.357 INFO  ApplyBQSR - Initializing engine
+12:03:02.693 INFO  ApplyBQSR - Shutting down engine
+[May 22, 2023 12:03:02 PM EDT] org.broadinstitute.hellbender.tools.walkers.bqsr.ApplyBQSR done. Elapsed time: 0.01 minutes.
+Runtime.totalMemory()=32571392
+***********************************************************************
+
+A USER ERROR has occurred: Couldn't read file. Error was: /Genomics/ayroleslab2/scott/git/chromium/data/raw/_sort_uniq_dedup_rg.bam with exception: Cannot read non-existent file: file:///Genomics/ayroleslab2/scott/git/chromium/data/raw/_sort_uniq_dedup_rg.bam
+
+***********************************************************************
+Set the system property GATK_STACKTRACE_ON_USER_EXCEPTION (--java-options '-DGATK_STACKTRACE_ON_USER_EXCEPTION=true') to print the stack trace.
+Using GATK jar /Genomics/ayroleslab2/scott/git/chromium/tools/gatk-package-4.3.0.0-local.jar
+Running:
+    java -Dsamjdk.use_async_io_read_samtools=false -Dsamjdk.use_async_io_write_samtools=true -Dsamjdk.use_async_io_write_tribble=false -Dsamjdk.compression_level=2 -jar /Genomics/ayroleslab2/scott/git/chromium/tools/gatk-package-4.3.0.0-local.jar ApplyBQSR -R /Genomics/ayroleslab2/scott/git/chromium/data/ref/dmel-all-chromosome-r6.49.fasta -I /Genomics/ayroleslab2/scott/git/chromium/data/raw/_sort_uniq_dedup_rg.bam --bqsr-recal-file /Genomics/ayroleslab2/scott/git/chromium/data/raw/.recal.table -O /Genomics/ayroleslab2/scott/git/chromium/data/raw/_recal.bam
+
+sambamba 1.0.0
+ by Artem Tarasov and Pjotr Prins (C) 2012-2022
+    LDC 1.28.1 / DMD v2.098.1 / LLVM12.0.0 / bootstrap LDC - the LLVM D compiler (1.28.1)
+
+sambamba-index: Cannot open or create file '/Genomics/ayroleslab2/scott/git/chromium/data/raw/_recal.bam' : No such file or directory
+12:03:05.895 INFO  NativeLibraryLoader - Loading libgkl_compression.so from jar:file:/Genomics/ayroleslab2/scott/git/chromium/tools/gatk-package-4.3.0.0-local.jar!/com/intel/gkl/native/libgkl_compression.so
+12:03:06.072 INFO  HaplotypeCaller - ------------------------------------------------------------
+12:03:06.072 INFO  HaplotypeCaller - The Genome Analysis Toolkit (GATK) v4.3.0.0
+12:03:06.072 INFO  HaplotypeCaller - For support and documentation go to https://software.broadinstitute.org/gatk/
+12:03:06.072 INFO  HaplotypeCaller - Executing as swwolf@argo-18 on Linux v4.18.0-305.12.1.el8_4.x86_64 amd64
+12:03:06.072 INFO  HaplotypeCaller - Java runtime: OpenJDK 64-Bit Server VM v1.8.0_302-b08
+12:03:06.072 INFO  HaplotypeCaller - Start Date/Time: May 22, 2023 12:03:05 PM EDT
+12:03:06.072 INFO  HaplotypeCaller - ------------------------------------------------------------
+12:03:06.072 INFO  HaplotypeCaller - ------------------------------------------------------------
+12:03:06.073 INFO  HaplotypeCaller - HTSJDK Version: 3.0.1
+12:03:06.073 INFO  HaplotypeCaller - Picard Version: 2.27.5
+12:03:06.073 INFO  HaplotypeCaller - Built for Spark Version: 2.4.5
+12:03:06.073 INFO  HaplotypeCaller - HTSJDK Defaults.COMPRESSION_LEVEL : 2
+12:03:06.073 INFO  HaplotypeCaller - HTSJDK Defaults.USE_ASYNC_IO_READ_FOR_SAMTOOLS : false
+12:03:06.073 INFO  HaplotypeCaller - HTSJDK Defaults.USE_ASYNC_IO_WRITE_FOR_SAMTOOLS : true
+12:03:06.073 INFO  HaplotypeCaller - HTSJDK Defaults.USE_ASYNC_IO_WRITE_FOR_TRIBBLE : false
+12:03:06.073 INFO  HaplotypeCaller - Deflater: IntelDeflater
+12:03:06.073 INFO  HaplotypeCaller - Inflater: IntelInflater
+12:03:06.073 INFO  HaplotypeCaller - GCS max retries/reopens: 20
+12:03:06.073 INFO  HaplotypeCaller - Requester pays: disabled
+12:03:06.073 INFO  HaplotypeCaller - Initializing engine
+12:03:06.371 INFO  HaplotypeCaller - Shutting down engine
+[May 22, 2023 12:03:06 PM EDT] org.broadinstitute.hellbender.tools.walkers.haplotypecaller.HaplotypeCaller done. Elapsed time: 0.01 minutes.
+Runtime.totalMemory()=32571392
+***********************************************************************
+
+A USER ERROR has occurred: Couldn't read file. Error was: /Genomics/ayroleslab2/scott/git/chromium/data/raw/_recal.bam with exception: Cannot read non-existent file: file:///Genomics/ayroleslab2/scott/git/chromium/data/raw/_recal.bam
+
+***********************************************************************
+Set the system property GATK_STACKTRACE_ON_USER_EXCEPTION (--java-options '-DGATK_STACKTRACE_ON_USER_EXCEPTION=true') to print the stack trace.
+Using GATK jar /Genomics/ayroleslab2/scott/git/chromium/tools/gatk-package-4.3.0.0-local.jar
+Running:
+    java -Dsamjdk.use_async_io_read_samtools=false -Dsamjdk.use_async_io_write_samtools=true -Dsamjdk.use_async_io_write_tribble=false -Dsamjdk.compression_level=2 -jar /Genomics/ayroleslab2/scott/git/chromium/tools/gatk-package-4.3.0.0-local.jar HaplotypeCaller -R /Genomics/ayroleslab2/scott/git/chromium/data/ref/dmel-all-chromosome-r6.49.fasta -I /Genomics/ayroleslab2/scott/git/chromium/data/raw/_recal.bam -ERC GVCF -output /Genomics/ayroleslab2/scott/git/chromium/data/raw/.recal.vcf -max-alternate-alleles 2 --native-pair-hmm-threads 4
+[bgzip] No such file or directory: /Genomics/ayroleslab2/scott/git/chromium/data/raw/.recal.vcf
+open: No such file or directory
+[tabix] was bgzip used to compress this file? /Genomics/ayroleslab2/scott/git/chromium/data/raw/.recal.vcf.gz
+slurmstepd: error: Detected 1 oom-kill event(s) in StepId=904774.batch cgroup. Some of your processes may have been killed by the cgroup out-of-memory handler.
