@@ -37,6 +37,8 @@ pattern <- "(?<=__)Chrom_\\d+_\\d+"
 df$plate = str_extract(df$indiv, pattern)
 plate_map = read_csv("data/plate_treatment_mapping.csv", col_names = TRUE)
 
+library(pl
+
 library(plyr)
 
 df$treatment <- mapvalues(df$plate, plate_map$id, plate_map$source)

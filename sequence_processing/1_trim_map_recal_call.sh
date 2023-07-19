@@ -17,7 +17,7 @@ sambamba_DIR=sambamba
 GATK_DIR=/Genomics/ayroleslab2/scott/git/chromium/tools/gatk
 variants_DIR=/Genomics/ayroleslab2/scott/git/chromium/data/ref/dbSNP_Nex_Sep28.19.vcf
 
-tmp_DIR=/Genomics/ayroleslab2/scott/git/chromium/data/raw
+tmp_DIR=/Genomics/ayroleslab2/scott/git/chromium/data/20230711_trim_map_recal_call
 
 R1=$fastq_DIR/${SAMPLEINFO}-read-1.fastq.gz
 R2=$fastq_DIR/${SAMPLEINFO}-read-4.fastq.gz

@@ -1,0 +1,16 @@
+{
+    "__default__":
+    {
+        "job-name" : "{rule}",
+        "account" : "swwolf",
+        "nodes" : "1",
+        "ntasks" : "1",
+        "time" : "7-00:00:00",
+        "mem" : "256G",
+        "cpus-per-task" : "24",
+        "mail-user" : "swwolf@princeton.edu",
+        "mail-type" : "FAIL",
+        "error" : "logs/slurm/{rule}_{wildcards}.err",
+        "output" : "logs/slurm/{rule}_{wildcards}.out"
+    }
+}

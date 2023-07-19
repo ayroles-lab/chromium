@@ -1,0 +1,167 @@
+import pandas as pd
+
+SAMPLES = pd.read_csv("../list_of_samples.txt", header=None, squeeze=True).tolist()
+CHROMOSOMES = ['2L', '2R', '3L', '3R', 'X', '4']
+
+FASTQ_DIR = "/Genomics/ayroleslab2/scott/git/chromium/data/raw"
+REF_DIR = "/Genomics/ayroleslab2/scott/git/chromium/data/ref/dmel-all-chromosome-r6.49.fasta"
+PICARD_DIR = "/Genomics/ayroleslab2/scott/git/chromium/tools/picard.jar"
+SAMBAMBA_DIR = "sambamba"
+GATK_DIR = "/Genomics/ayroleslab2/scott/git/chromium/tools/gatk"
+VARIANTS_DIR = "/Genomics/ayroleslab2/scott/git/chromium/data/ref/dbSNP_Nex_Sep28.19.vcf"
+TMP_DIR = "/Genomics/ayroleslab2/scott/git/chromium/data/20230711_trim_map_recal_call"
+
+rule all:
+    input:
+        expand(TMP_DIR + "/{sample}.recal.vcf.gz", sample=SAMPLES),
+        expand(TMP_DIR + "/joint_calls/genomicsdb_{chrom}.vcf.gz", chrom=CHROMOSOMES)
+
+rule trim:
+    conda:
+        "crvi_env.yml"
+    input:
+        r1 = FASTQ_DIR + "/{sample}-read-1.fastq.gz",
+        r2 = FASTQ_DIR + "/{sample}-read-4.fastq.gz"
+    output:
+        r1_trim = TMP_DIR + "/{sample}.trim.R1.fastq.gz",
+        r2_trim = TMP_DIR + "/{sample}.trim.R2.fastq.gz"
+    shell:
+        """
+        cutadapt -e 0.1 --overlap 2 -a AGATCGGAAGAG -A AGATCGGAAGAG \
+        --minimum-length=20 --trim-n -j 0 -o {output.r1_trim} \
+        -p {output.r2_trim} {input.r1} {input.r2}
+        """
+
+# The environment has a bad version of samtools, so we just load the module
+rule map:
+    conda:
+        "crvi_env.yml"
+    input:
+        r1_trim = TMP_DIR + "/{sample}.trim.R1.fastq.gz",
+        r2_trim = TMP_DIR + "/{sample}.trim.R2.fastq.gz"
+    output:
+        sort_uniq_bam = TMP_DIR + "/{sample}_sort_uniq.bam",
+        sort_uniq_bam_index = TMP_DIR + "/{sample}_sort_uniq.bam.bai"
+    params:
+        ref_dir = REF_DIR,
+        threads = 24
+    shell:
+        r"""
+        module load samtools && \
+        bwa mem -M -t {params.threads} {params.ref_dir} {input.r1_trim} {input.r2_trim} | samtools view -Sbq 1 | samtools sort -@ {params.threads} -m 3G > {output.sort_uniq_bam} && \
+        samtools index {output.sort_uniq_bam}
+        """
+
+
+rule dedup:
+    conda:
+        "crvi_env.yml"
+    input:
+        sort_uniq_bam = TMP_DIR + "/{sample}_sort_uniq.bam"
+    output:
+        dedup_bam = TMP_DIR + "/{sample}_sort_uniq_dedup.bam"
+    params:
+        picard_dir = PICARD_DIR,
+        sambamba_dir = SAMBAMBA_DIR,
+        tmp_dir = TMP_DIR
+    shell:
+        """
+        java -Xmx40g -jar {params.picard_dir} MarkDuplicates \
+        I={input.sort_uniq_bam} O={output.dedup_bam} M={params.tmp_dir}/{wildcards.sample}_sort_uniq_dedup.txt && \
+        {params.sambamba_dir} index -t 4 {output.dedup_bam}
+        """
+
+rule add_read_groups:
+    conda:
+        "crvi_env.yml"
+    input:
+        dedup_bam = TMP_DIR + "/{sample}_sort_uniq_dedup.bam"
+    output:
+        dedup_rg_bam = TMP_DIR + "/{sample}_sort_uniq_dedup_rg.bam"
+    params:
+        picard_dir = PICARD_DIR,
+        sambamba_dir = SAMBAMBA_DIR,
+        tmp_dir = TMP_DIR
+    shell:
+        """
+        java -jar {params.picard_dir} AddOrReplaceReadGroups \
+        I={input.dedup_bam} O={output.dedup_rg_bam} SO=coordinate \
+        RGLB={wildcards.sample} RGPL=illumina RGPU=longevity RGSM={wildcards.sample} && \
+        {params.sambamba_dir} index -t 4 {output.dedup_rg_bam}
+        """
+
+rule base_recalibration:
+    conda:
+        "crvi_env.yml"
+    input:
+        dedup_rg_bam = TMP_DIR + "/{sample}_sort_uniq_dedup_rg.bam"
+    output:
+        recal_bam = TMP_DIR + "/{sample}_recal.bam"
+    params:
+        ref_dir = REF_DIR,
+        gatk_dir = GATK_DIR,
+        variants_dir = VARIANTS_DIR,
+        tmp_dir = TMP_DIR,
+        sambamba_dir = SAMBAMBA_DIR,
+    shell:
+        """
+        {params.gatk_dir} BaseRecalibrator -R {params.ref_dir} -I {input.dedup_rg_bam} \
+        -output {params.tmp_dir}/{wildcards.sample}.recal.table -known-sites {params.variants_dir} && \
+        {params.gatk_dir} ApplyBQSR -R {params.ref_dir} -I {input.dedup_rg_bam} \
+        --bqsr-recal-file {params.tmp_dir}/{wildcards.sample}.recal.table -O {output.recal_bam} && \
+        {params.sambamba_dir} index -t 4 {output.recal_bam}
+        """
+
+rule haplotype_caller:
+    conda:
+        "crvi_env.yml"
+    input:
+        recal_bam = TMP_DIR + "/{sample}_recal.bam"
+    output:
+        recal_vcf = TMP_DIR + "/{sample}.recal.vcf.gz"
+    params:
+        ref_dir = REF_DIR,
+        gatk_dir = GATK_DIR,
+        tmp_dir = TMP_DIR,
+        threads = 24
+    shell:
+        """
+        export OMP_NUM_THREADS={params.threads} && \
+        {params.gatk_dir} HaplotypeCaller -R {params.ref_dir} -I {input.recal_bam} -ERC GVCF \
+        -output {params.tmp_dir}/{wildcards.sample}.recal.vcf -max-alternate-alleles 2 --native-pair-hmm-threads {params.threads} && \
+        bgzip {params.tmp_dir}/{wildcards.sample}.recal.vcf && \
+        tabix -p vcf {output.recal_vcf}
+        """
+
+
+rule combine_gvcfs:
+    conda:
+        "crvi_env.yml"
+    input:
+        gvcf_files = expand(TMP_DIR + "/{sample}.recal.vcf.gz", sample=SAMPLES),
+    output:
+        database_dir = directory(TMP_DIR + "/joint_calls/genomicsdb_{chrom}")
+    params:
+        ref_dir = REF_DIR,
+        gatk_dir = GATK_DIR,
+        tmp_dir = TMP_DIR
+    shell:
+        """
+        mkdir -p {params.tmp_dir}/joint_calls && \
+        {params.gatk_dir} GenomicsDBImport \
+        --genomicsdb-workspace-path {output.database_dir} \
+        --intervals {wildcards.chrom} \
+        {expand('-V ' + gvcf_files, sample=SAMPLES)}
+        """
+
+rule clean_up:
+    conda:
+        "crvi_env.yml"
+    output:
+        TMP_DIR + "/joint_calls/"
+    input:
+        files = expand(TMP_DIR + "/{sample}_sort_uniq*", sample=SAMPLES)
+    shell:
+        """
+        rm {input.files} && rm -r {output}
+        """
