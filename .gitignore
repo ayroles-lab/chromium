@@ -5,3 +5,6 @@ sequence_processing/logs/
 sequence_processing/tmp.png
 tmp.png
 analysis/logs/
+sequence_processing/snakemake/logs/slurm/*
+analysis/data/
+sequence_processing/snakemake/.snakemake/
