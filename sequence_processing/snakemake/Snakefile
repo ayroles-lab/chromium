@@ -148,13 +148,14 @@ rule combine_gvcfs:
         tmp_dir = TMP_DIR
     shell:
         """
-        mkdir -p {params.tmp_dir}/joint_calls && \
-        {params.gatk_dir} --java-options "-Xmx256g -Xms196g -XX:+UseParallelGC" GenomicsDBImport \
+        mkdir -p {params.tmp_dir}/joint_calls/ && \
+        {params.gatk_dir} --java-options "-Xmx256g -Xms196g" GenomicsDBImport \
         --genomicsdb-workspace-path {output.database_dir} \
         --genomicsdb-shared-posixfs-optimizations true \
         --reader-threads 24 \
         --batch-size 50 \
-        --intervals {wildcards.chrom}
+        --intervals {wildcards.chrom} \
+        $(for gvcf in {input.gvcf_files}; do echo "-V ${{gvcf}}"; done)
         """
 
 
