@@ -13,8 +13,10 @@ TMP_DIR = "/Genomics/ayroleslab2/scott/git/chromium/data/20230711_trim_map_recal
 
 rule all:
     input:
-        expand(TMP_DIR + "/{sample}.recal.vcf.gz", sample=SAMPLES),
-        expand(TMP_DIR + "/joint_calls/genomicsdb_{chrom}.vcf.gz", chrom=CHROMOSOMES)
+        expand(TMP_DIR + "/joint_call_{chrom}_longevity.SNPs.PASS2.vcf.gz", chrom=CHROMOSOMES),
+        expand(TMP_DIR + "/joint_call_{chrom}_longevity.SNPs.filt.vcf.gz", chrom=CHROMOSOMES),
+        expand(TMP_DIR + "/joint_calls/genomicsdb_{chrom}", chrom=CHROMOSOMES)
+
 
 rule trim:
     conda:
@@ -133,7 +135,6 @@ rule haplotype_caller:
         tabix -p vcf {output.recal_vcf}
         """
 
-
 rule combine_gvcfs:
     conda:
         "crvi_env.yml"
@@ -148,20 +149,60 @@ rule combine_gvcfs:
     shell:
         """
         mkdir -p {params.tmp_dir}/joint_calls && \
-        {params.gatk_dir} GenomicsDBImport \
+        {params.gatk_dir} --java-options "-Xmx256g -Xms196g -XX:+UseParallelGC" GenomicsDBImport \
         --genomicsdb-workspace-path {output.database_dir} \
-        --intervals {wildcards.chrom} \
-        {expand('-V ' + gvcf_files, sample=SAMPLES)}
+        --genomicsdb-shared-posixfs-optimizations true \
+        --reader-threads 24 \
+        --batch-size 50 \
+        --intervals {wildcards.chrom}
+        """
+
+
+rule filter_SNPs:
+    conda:
+        "crvi_env.yml"
+    input:
+        database_dir = rules.combine_gvcfs.output.database_dir
+    output:
+        snps_filt_vcf_gz = TMP_DIR + "/joint_call_{chrom}_longevity.SNPs.filt.vcf.gz",
+        snps_pass2_vcf_gz = TMP_DIR + "/joint_call_{chrom}_longevity.SNPs.PASS2.vcf.gz",
+    params:
+        gatk_dir = GATK_DIR,
+        ref_dir = REF_DIR,
+        out_dir = TMP_DIR,
+        threads = 24,
+    shell:
+        """
+        # Define temporary file names in the shell command
+        snps_vcf="{params.out_dir}/joint_call_{wildcards.chrom}_longevity.SNPs.vcf"
+        snps_filt_vcf="{params.out_dir}/joint_call_{wildcards.chrom}_longevity.SNPs.filt.vcf"
+        snps_pass_vcf="{params.out_dir}/joint_call_{wildcards.chrom}_longevity.SNPs.pass.vcf"
+        snps_pass_bed="{params.out_dir}/joint_call_{wildcards.chrom}_longevity.SNPs.pass.bed"
+        snps_filt_vcf_gz="{output.snps_filt_vcf_gz}"
+        snps_pass2_vcf_gz="{output.snps_pass2_vcf_gz}"
+
+        {params.gatk_dir} --java-options "-Xmx256G -XX:+UseParallelGC" GenotypeGVCFs -R {params.ref_dir} -V gendb://{input.database_dir} -O $snps_vcf --genomicsdb-shared-posixfs-optimizations true && \
+        {params.gatk_dir} --java-options "-Xmx256G -XX:+UseParallelGC" VariantFiltration -R {params.ref_dir} -V $snps_vcf -O $snps_filt_vcf --filterExpression "QUAL < 20.0" --filterExpression "QD < 2.0" --filterExpression "FS > 60.0" --filterExpression "MQ < 35.0" --filterExpression "MQRankSum < -12.5" --filterExpression "ReadPosRankSum < -8.0" --filterName "LowQual" --filterName "LowQD" --filterName "HighFS" --filterName "LowMQ" --filterName "LowMQRankSum" --filterName "LowReadPosRankSum" && \
+        rm $snps_vcf* && \
+        plink --vcf $snps_filt_vcf --allow-extra-chr --maf 0.01 --set-missing-var-ids @:#:$1,$2 --indep-pairwise 200 25 0.9 --geno 0.75 --biallelic-only strict --recode vcf --out $snps_pass_vcf && \
+        sed -e s/:/'\t'/g $snps_pass_vcf.prune.in | awk '{{OFS="\t";print $1,$2-1,$2}}' > $snps_pass_bed && \
+        bgzip $snps_pass_vcf.vcf && \
+        tabix -p vcf $snps_pass_vcf.vcf.gz && \
+        bcftools filter -e "QUAL < 20" --threads {params.threads} -R $snps_pass_bed -O z -o $snps_pass2_vcf_gz $snps_pass_vcf.vcf.gz && \
+        rm $snps_pass_vcf.* && \
+        bgzip $snps_filt_vcf && \
+        tabix -p vcf $snps_filt_vcf_gz && \
+        tabix -p vcf $snps_pass2_vcf_gz
         """
 
 rule clean_up:
     conda:
         "crvi_env.yml"
     output:
-        TMP_DIR + "/joint_calls/"
+        directory(TMP_DIR + "/joint_calls/")
     input:
-        files = expand(TMP_DIR + "/{sample}_sort_uniq*", sample=SAMPLES)
+        files = expand(TMP_DIR + "/{sample}_sort_uniq*", sample=SAMPLES),
     shell:
         """
-        rm {input.files} && rm -r {output}
+        rm {input.files}
         """
