@@ -45,6 +45,11 @@
         "mem": "32G",
         "cpus-per-task": "4"
     },
+    "genotype_gvcfs":{
+        "time": "7-00:00:00",
+        "mem": "300G",
+        "cpus-per-task": "24"
+    },
     "filter_SNPs":{
         "time": "7-00:00:00",
         "mem": "300G",
