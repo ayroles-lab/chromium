@@ -50,7 +50,7 @@
         "mem": "300G",
         "cpus-per-task": "24"
     },
-    "filter_SNPs":{
+    "filter_gvcfs":{
         "time": "7-00:00:00",
         "mem": "300G",
         "cpus-per-task": "24"

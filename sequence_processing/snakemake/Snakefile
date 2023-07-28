@@ -1,7 +1,21 @@
 import pandas as pd
 
 SAMPLES = pd.read_csv("../list_of_samples.txt", header=None, squeeze=True).tolist()
-CHROMOSOMES = ['2L', '2R', '3L', '3R', 'X', '4']
+
+# Replace this
+# CHROMOSOMES = ['2L', '2R', '3L', '3R', 'X', '4']
+
+# With this:
+def get_intervals_from_bed(bed_file):
+    intervals = []
+    with open(bed_file) as f:
+        for line in f:
+            chrom, start, end = line.strip().split()
+            intervals.append(f"{chrom}:{start}-{end}")
+    return intervals
+
+INTERVALS = get_intervals_from_bed("/Genomics/ayroleslab2/scott/git/chromium/sequence_processing/snakemake/chroms_intervals.bed")
+
 
 FASTQ_DIR = "/Genomics/ayroleslab2/scott/git/chromium/data/raw"
 REF_DIR = "/Genomics/ayroleslab2/scott/git/chromium/data/ref/dmel-all-chromosome-r6.49.fasta"
@@ -13,8 +27,8 @@ TMP_DIR = "/Genomics/ayroleslab2/scott/git/chromium/data/20230711_trim_map_recal
 
 rule all:
     input:
-        expand(TMP_DIR + "/joint_call_{chrom}_longevity.SNPs.vcf", chrom=CHROMOSOMES),
-        expand(TMP_DIR + "/joint_calls/genomicsdb_{chrom}", chrom=CHROMOSOMES)
+        expand(TMP_DIR + "/joint_call_{interval}_longevity.SNPs.vcf", interval=INTERVALS),
+        expand(TMP_DIR + "/joint_calls/genomicsdb_{interval}", interval=INTERVALS)
 
 
 rule trim:
@@ -140,7 +154,7 @@ rule combine_gvcfs:
     input:
         gvcf_files = expand(TMP_DIR + "/{sample}.recal.vcf.gz", sample=SAMPLES),
     output:
-        database_dir = directory(TMP_DIR + "/joint_calls/genomicsdb_{chrom}")
+        database_dir = directory(TMP_DIR + "/joint_calls/genomicsdb_{interval}")
     params:
         ref_dir = REF_DIR,
         gatk_dir = GATK_DIR,
@@ -152,13 +166,11 @@ rule combine_gvcfs:
         --genomicsdb-workspace-path {output.database_dir} \
         --genomicsdb-shared-posixfs-optimizations true \
         --reader-threads 24 \
+        -R {params.ref_dir} \
         --batch-size 50 \
-        --intervals {wildcards.chrom} \
+        --intervals {wildcards.interval} \
         $(for gvcf in {input.gvcf_files}; do echo "-V ${{gvcf}}"; done)
         """
-
-
-# Assuming you have imported necessary modules at the beginning of your Snakefile
 
 rule genotype_gvcfs:
     conda:
@@ -166,7 +178,7 @@ rule genotype_gvcfs:
     input:
         database_dir = rules.combine_gvcfs.output.database_dir
     output:
-        snps_filt_vcf_gz = TMP_DIR + "/joint_call_{chrom}_longevity.SNPs.vcf",
+        snps_filt_vcf_gz = TMP_DIR + "/joint_call_{interval}_longevity.SNPs.vcf",
     params:
         gatk_dir = GATK_DIR,
         ref_dir = REF_DIR,
@@ -176,12 +188,13 @@ rule genotype_gvcfs:
     shell:
         """
         # Define temporary file names in the shell command
-        snps_vcf="{params.out_dir}/joint_call_{wildcards.chrom}_longevity.SNPs.vcf"
+        snps_vcf="{params.out_dir}/joint_call_{wildcards.interval}_longevity.SNPs.vcf"
 
         {params.gatk_dir} --java-options "-Xmx{params.java_mem} -XX:+UseParallelGC" GenotypeGVCFs \
             -R {params.ref_dir} -V gendb://{input.database_dir} -O $snps_vcf \
             --tmp-dir {params.out_dir} \
-            --use-new-qual-calculator \
+            --use-new-qual-calculator true\
+            --genomicsdb-shared-posixfs-optimizations true
         """
 
 
