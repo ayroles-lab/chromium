@@ -2,8 +2,10 @@ import pandas as pd
 
 SAMPLES = pd.read_csv("../list_of_samples.txt", header=None, squeeze=True).tolist()
 
-CHROMOSOMES = ['2L', '2R', '3L', '3R', 'X', '4']
+# Replace this
+# CHROMOSOMES = ['2L', '2R', '3L', '3R', 'X', '4']
 
+# With this:
 def get_intervals_from_bed(bed_file):
     intervals = []
     with open(bed_file) as f:
@@ -12,7 +14,7 @@ def get_intervals_from_bed(bed_file):
             intervals.append(f"{chrom}:{start}-{end}")
     return intervals
 
-INTERVALS = get_intervals_from_bed("/Genomics/ayroleslab2/scott/git/chromium/sequence_processing/snakemake/new_chroms_intervals.bed")
+INTERVALS = get_intervals_from_bed("/Genomics/ayroleslab2/scott/git/chromium/sequence_processing/snakemake/chroms_intervals.bed")
 
 
 FASTQ_DIR = "/Genomics/ayroleslab2/scott/git/chromium/data/raw"
@@ -21,12 +23,12 @@ PICARD_DIR = "/Genomics/ayroleslab2/scott/git/chromium/tools/picard.jar"
 SAMBAMBA_DIR = "sambamba"
 GATK_DIR = "/Genomics/ayroleslab2/scott/git/chromium/tools/gatk"
 VARIANTS_DIR = "/Genomics/ayroleslab2/scott/git/chromium/data/ref/dbSNP_Nex_Sep28.19.vcf"
-TMP_DIR = "/Genomics/ayroleslab2/scott/git/chromium/data/snakemake_tmp"
-RESULTS_DIR = "/Genomics/ayroleslab2/scott/git/chromium/data/snakemake_results"
+TMP_DIR = "/Genomics/ayroleslab2/scott/git/chromium/data/20230711_trim_map_recal_call"
 
 rule all:
     input:
-        expand(RESULTS_DIR + "/{chrom}.combined.vcf", chrom=CHROMOSOMES)
+        expand(TMP_DIR + "/joint_call_{interval}_longevity.SNPs.vcf", interval=INTERVALS),
+        expand(TMP_DIR + "/joint_calls/genomicsdb_{interval}", interval=INTERVALS)
 
 
 rule trim:
@@ -57,7 +59,7 @@ rule map:
         sort_uniq_bam_index = TMP_DIR + "/{sample}_sort_uniq.bam.bai"
     params:
         ref_dir = REF_DIR,
-        threads = 1
+        threads = 24
     shell:
         r"""
         module load samtools && \
@@ -76,13 +78,12 @@ rule dedup:
     params:
         picard_dir = PICARD_DIR,
         sambamba_dir = SAMBAMBA_DIR,
-        tmp_dir = TMP_DIR,
-        threads = 1
+        tmp_dir = TMP_DIR
     shell:
         """
-        java -Xmx24g -jar {params.picard_dir} MarkDuplicates \
+        java -Xmx40g -jar {params.picard_dir} MarkDuplicates \
         I={input.sort_uniq_bam} O={output.dedup_bam} M={params.tmp_dir}/{wildcards.sample}_sort_uniq_dedup.txt && \
-        {params.sambamba_dir} index -t {params.threads} {output.dedup_bam}
+        {params.sambamba_dir} index -t 4 {output.dedup_bam}
         """
 
 rule add_read_groups:
@@ -95,14 +96,13 @@ rule add_read_groups:
     params:
         picard_dir = PICARD_DIR,
         sambamba_dir = SAMBAMBA_DIR,
-        tmp_dir = TMP_DIR,
-        threads = 1
+        tmp_dir = TMP_DIR
     shell:
         """
         java -jar {params.picard_dir} AddOrReplaceReadGroups \
         I={input.dedup_bam} O={output.dedup_rg_bam} SO=coordinate \
         RGLB={wildcards.sample} RGPL=illumina RGPU=longevity RGSM={wildcards.sample} && \
-        {params.sambamba_dir} index -t {params.threads} {output.dedup_rg_bam}
+        {params.sambamba_dir} index -t 4 {output.dedup_rg_bam}
         """
 
 rule base_recalibration:
@@ -118,14 +118,13 @@ rule base_recalibration:
         variants_dir = VARIANTS_DIR,
         tmp_dir = TMP_DIR,
         sambamba_dir = SAMBAMBA_DIR,
-        threads = 1
     shell:
         """
         {params.gatk_dir} BaseRecalibrator -R {params.ref_dir} -I {input.dedup_rg_bam} \
         -output {params.tmp_dir}/{wildcards.sample}.recal.table -known-sites {params.variants_dir} && \
         {params.gatk_dir} ApplyBQSR -R {params.ref_dir} -I {input.dedup_rg_bam} \
         --bqsr-recal-file {params.tmp_dir}/{wildcards.sample}.recal.table -O {output.recal_bam} && \
-        {params.sambamba_dir} index -t {params.threads} {output.recal_bam}
+        {params.sambamba_dir} index -t 4 {output.recal_bam}
         """
 
 rule haplotype_caller:
@@ -139,7 +138,7 @@ rule haplotype_caller:
         ref_dir = REF_DIR,
         gatk_dir = GATK_DIR,
         tmp_dir = TMP_DIR,
-        threads = 1
+        threads = 24
     shell:
         """
         export OMP_NUM_THREADS={params.threads} && \
@@ -159,15 +158,14 @@ rule combine_gvcfs:
     params:
         ref_dir = REF_DIR,
         gatk_dir = GATK_DIR,
-        tmp_dir = TMP_DIR,
-        threads = 1
+        tmp_dir = TMP_DIR
     shell:
         """
         mkdir -p {params.tmp_dir}/joint_calls/ && \
-        {params.gatk_dir} --java-options "-Xmx24g" GenomicsDBImport \
+        {params.gatk_dir} --java-options "-Xmx256g -Xms196g" GenomicsDBImport \
         --genomicsdb-workspace-path {output.database_dir} \
         --genomicsdb-shared-posixfs-optimizations true \
-        --reader-threads {params.threads} \
+        --reader-threads 24 \
         -R {params.ref_dir} \
         --batch-size 50 \
         --intervals {wildcards.interval} \
@@ -185,8 +183,8 @@ rule genotype_gvcfs:
         gatk_dir = GATK_DIR,
         ref_dir = REF_DIR,
         out_dir = TMP_DIR,
-        threads = 1,
-        java_mem = "24g"
+        threads = 24,
+        java_mem = "256g"
     shell:
         """
         # Define temporary file names in the shell command
@@ -199,77 +197,15 @@ rule genotype_gvcfs:
             --genomicsdb-shared-posixfs-optimizations true
         """
 
-rule select_snps:
-    input:
-        vcf= rules.genotype_gvcfs.output.snps_filt_vcf_gz
+
+rule clean_up:
+    conda:
+        "crvi_env.yml"
     output:
-        selected_vcf= TMP_DIR + "/{interval}_selected.vcf"
-    params:
-        gatk_dir = GATK_DIR,
-        ref_dir = REF_DIR,
-        java_mem = "24g"
+        directory(TMP_DIR + "/joint_calls/")
+    input:
+        files = expand(TMP_DIR + "/{sample}_sort_uniq*", sample=SAMPLES),
     shell:
         """
-        {params.gatk_dir} --java-options "-Xmx{params.java_mem}" SelectVariants \
-        -R {params.ref_dir} \
-        -V {input.vcf} \
-        --select-type-to-include SNP \
-        -O {output.selected_vcf}
-        """
-
-rule filter_snps:
-    input:
-        vcf= rules.select_snps.output.selected_vcf
-    output:
-        filtered_vcf= TMP_DIR + "/{interval}_filtered.vcf"
-    params:
-        gatk_dir = GATK_DIR,
-        ref_dir = REF_DIR,
-        java_mem = "24g"
-    shell:
-        """
-        {params.gatk_dir} --java-options "-Xmx{params.java_mem}" VariantFiltration \
-        -R {params.ref_dir} \
-        -V {input.vcf} \
-        --filter-expression "QD < 2.0 || FS > 60.0 || MQ < 40.0 || SOR > 3.0 || MQRankSum < -12.5 || ReadPosRankSum < -8.0" \
-        --filter-name "basic_filters" \
-        -O {output.filtered_vcf}
-        """
-
-rule exclude_filtered_snps:
-    input:
-        vcf= rules.filter_snps.output.filtered_vcf
-    output:
-        filtered_excluded_vcf= TMP_DIR + "/{interval}_filtered_excluded.vcf"
-    params:
-        gatk_dir = GATK_DIR,
-        ref_dir = REF_DIR,
-        java_mem = "24g"
-    shell:
-        """
-        {params.gatk_dir} --java-options "-Xmx{params.java_mem}" SelectVariants \
-        -R {params.ref_dir} \
-        -V {input.vcf} \
-        --exclude-filtered \
-        -O {output.filtered_excluded_vcf}
-        """
-
-def get_intervals_for_chromosome(chrom):
-    return [interval for interval in INTERVALS if interval.startswith(chrom)]
-
-rule combine_vcfs:
-    input:
-        lambda wildcard: [TMP_DIR + "/{}_filtered_excluded.vcf".format(interval) for interval in INTERVALS if interval.startswith(wildcard.chrom)]
-    output:
-        combined_vcf= RESULTS_DIR + "/{chrom}.combined.vcf"
-    params:
-        gatk_dir = GATK_DIR,
-        java_mem = "196g",
-        results_dir = RESULTS_DIR
-    shell:
-        """
-        mkdir -p {params.results_dir} && \
-        {params.gatk_dir} --java-options "-Xmx{params.java_mem}" GatherVcfs \
-        $(for vcf in {input}; do echo "-I ${{vcf}}"; done) \
-        -O {output.combined_vcf}
+        rm {input.files}
         """
