@@ -28,10 +28,9 @@ rule all:
     input:
         expand(RESULTS_DIR + "/{chrom}.combined.vcf", chrom=CHROMOSOMES),
         expand(TMP_DIR + "/count_info/joint_call_{chrom}.DP.filt.txt", chrom=CHROMOSOMES),
-        expand(TMP_DIR + "/count_info/joint_call_{chrom}.AD.filt.txt", chrom=CHROMOSOMES)
+        expand(TMP_DIR + "/count_info/joint_call_{chrom}.AD.filt.txt", chrom=CHROMOSOMES),
         expand(TMP_DIR + "/count_info/alternate_counts_{chrom}.txt", chrom=CHROMOSOMES),
         expand(TMP_DIR + "/count_info/reference_counts_{chrom}.txt", chrom=CHROMOSOMES)
-
 
 rule trim:
     conda:
