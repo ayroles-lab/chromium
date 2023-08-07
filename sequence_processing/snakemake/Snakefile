@@ -26,7 +26,11 @@ RESULTS_DIR = "/Genomics/ayroleslab2/scott/git/chromium/data/snakemake_results"
 
 rule all:
     input:
-        expand(RESULTS_DIR + "/{chrom}.combined.vcf", chrom=CHROMOSOMES)
+        expand(RESULTS_DIR + "/{chrom}.combined.vcf", chrom=CHROMOSOMES),
+        expand(TMP_DIR + "/count_info/joint_call_{chrom}.DP.filt.txt", chrom=CHROMOSOMES),
+        expand(TMP_DIR + "/count_info/joint_call_{chrom}.AD.filt.txt", chrom=CHROMOSOMES)
+        expand(TMP_DIR + "/count_info/alternate_counts_{chrom}.txt", chrom=CHROMOSOMES),
+        expand(TMP_DIR + "/count_info/reference_counts_{chrom}.txt", chrom=CHROMOSOMES)
 
 
 rule trim:
@@ -231,8 +235,10 @@ rule filter_snps:
         {params.gatk_dir} --java-options "-Xmx{params.java_mem}" VariantFiltration \
         -R {params.ref_dir} \
         -V {input.vcf} \
-        --filter-expression "QD < 2.0 || FS > 60.0 || MQ < 40.0 || SOR > 3.0 || MQRankSum < -12.5 || ReadPosRankSum < -8.0" \
-        --filter-name "basic_filters" \
+       --filterExpression "QUAL < 20.0" --filterExpression "QD < 2.0" --filterExpression "FS > 60.0" \
+        --filterExpression "MQ < 35.0" --filterExpression "MQRankSum < -12.5" --filterExpression "ReadPosRankSum < -8.0" \
+        --filterName "LowQual" --filterName "LowQD" --filterName "HighFS" --filterName "LowMQ" \
+        --filterName "LowMQRankSum" --filterName "LowReadPosRankSum" \
         -O {output.filtered_vcf}
         """
 
@@ -273,3 +279,90 @@ rule combine_vcfs:
         $(for vcf in {input}; do echo "-I ${{vcf}}"; done) \
         -O {output.combined_vcf}
         """
+
+rule filter_snps_after_merge:
+    conda:
+        "crvi_env.yml"
+    input:
+        vcf= rules.combine_vcfs.output.combined_vcf
+    output:
+        vcf_gz = RESULTS_DIR + "/{chrom}.filtered.combined.vcf.gz"
+    params:
+        out_DIR = RESULTS_DIR
+    shell:
+        r"""
+        plink --vcf {input.vcf} --allow-extra-chr --maf 0.01 --set-missing-var-ids @:#:$1,$2 --indep-pairwise 200 25 0.9 --geno 0.75 --biallelic-only strict --recode vcf --out {params.out_DIR}/joint_call_{wildcards.chrom}.SNPs.PASS
+        sed -e 's/:/\t/g' {params.out_DIR}/joint_call_{wildcards.chrom}.SNPs.PASS.prune.in | awk '{OFS="\t";print $1,$2-1,$2}' > {params.out_DIR}/joint_call_{wildcards.chrom}.SNPs.PASS.bed
+
+        bgzip {params.out_DIR}/joint_call_{wildcards.chrom}.SNPs.PASS.vcf
+        tabix -p vcf {params.out_DIR}/joint_call_{wildcards.chrom}.SNPs.PASS.vcf.gz
+
+        bcftools filter -e "QUAL < 20" --threads 4 -R {params.out_DIR}/joint_call_{wildcards.chrom}.SNPs.PASS.bed -O z -o {output.vcf_gz} {params.out_DIR}/joint_call_{wildcards.chrom}.SNPs.PASS.vcf.gz
+        """
+
+
+rule extract_counts:
+    input:
+        vcf_file = RESULTS_DIR + "/{chrom}.filtered.combined.vcf.gz",
+    output:
+        out_file1 = TMP_DIR + "/count_info/joint_call_{chrom}.DP.filt.txt",
+        out_file2 = TMP_DIR + "/count_info/joint_call_{chrom}.AD.filt.txt"
+    shell:
+        r"""
+        module load bcftools && \
+        mkdir -p {TMP_DIR}/count_info && \
+        bcftools query -f '[%CHROM:%POS\t%SAMPLE\t%DP\n]' {input.vcf_file} | sed 's/,/\t/g' > {TMP_DIR}/count_info/joint_call_{wildcards.chrom}.DP.txt && \
+        bcftools query -f '[%CHROM:%POS\t%SAMPLE\t%AD\n]' {input.vcf_file} | sed 's/,/\t/g' > {TMP_DIR}/count_info/joint_call_{wildcards.chrom}.AD.txt && \
+        awk '{{OFS="\t"; if ($3>0) print $1,$2,$3}}' {TMP_DIR}/count_info/joint_call_{wildcards.chrom}.DP.txt > {output.out_file1} && \
+        awk '{{OFS="\t"; if ($3>0 || $4>0) print $1,$2,$3,$4}}' {TMP_DIR}/count_info/joint_call_{wildcards.chrom}.AD.txt > {output.out_file2} && \
+        rm {TMP_DIR}/count_info/joint_call_{wildcards.chrom}.DP.txt && \
+        rm {TMP_DIR}/count_info/joint_call_{wildcards.chrom}.AD.txt
+        """
+
+
+rule process_counts:
+    input:
+        ad_file = TMP_DIR + "/count_info/joint_call_{chrom}.AD.filt.txt",
+        dp_file = TMP_DIR + "/count_info/joint_call_{chrom}.DP.filt.txt"
+    output:
+        alt_counts = TMP_DIR + "/count_info/alternate_counts_{chrom}.txt",
+        ref_counts = TMP_DIR + "/count_info/reference_counts_{chrom}.txt"
+    script:
+        """
+        library(data.table)
+        ad = fread('{input.ad_file}')
+        dp = fread('{input.dp_file}')
+        ad = unique(ad)
+        dp = unique(dp)
+
+        ad$loc_id <- paste(ad$V1, ad$V2, sep='_')
+        dp$loc_id <- paste(dp$V1, dp$V2, sep='_')
+
+        both = merge(ad, dp, by='loc_id')
+        both2 = subset(both, (V3.x + V4) == V3.y)
+
+        ad2 = ad[which(ad$loc_id %in% both2$loc_id), ]
+
+        setkey(ad2, V1, V2)
+        names = unique(ad2[, V2])
+        sites = unique(ad2[, V1])
+
+        ref_counts = as.data.table(unique(ad2[, V1]))
+        setnames(ref_counts, "V1", "site")
+        for(i in 1:length(names))
+        {{
+            ref_counts[, names[i] := ad2[.(as.factor(ref_counts[, site]), names[i]), V3]]
+        }}
+
+        alt_counts = as.data.table(unique(ad2[, V1]))
+        setnames(alt_counts, "V1", "site")
+        for(i in 1:length(names))
+        {{
+            alt_counts[, names[i] := ad2[.(as.factor(alt_counts[, site]), names[i]), V4]]
+        }}
+
+        write.table(alt_counts, '{output.alt_counts}', row.names=F, sep='\t', quote=F)
+        write.table(ref_counts, '{output.ref_counts}', row.names=F, sep='\t', quote=F)
+        """
+
+
