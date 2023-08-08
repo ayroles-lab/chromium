@@ -9,3 +9,6 @@ sequence_processing/snakemake/logs/slurm/*
 analysis/data/
 sequence_processing/snakemake/.snakemake/
 sequence_processing/snakemake/logs
+*.bam
+*.err
+*.out
