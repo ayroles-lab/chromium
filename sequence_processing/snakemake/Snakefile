@@ -3,6 +3,7 @@ import pandas as pd
 SAMPLES = pd.read_csv("../list_of_samples.txt", header=None, squeeze=True).tolist()
 
 CHROMOSOMES = ['2L', '2R', '3L', '3R', 'X', '4']
+# CHROMOSOMES = ['4']
 
 def get_intervals_from_bed(bed_file):
     intervals = []
@@ -26,9 +27,6 @@ RESULTS_DIR = "/Genomics/ayroleslab2/scott/git/chromium/data/snakemake_results"
 
 rule all:
     input:
-        expand(RESULTS_DIR + "/{chrom}.combined.vcf", chrom=CHROMOSOMES),
-        expand(TMP_DIR + "/count_info/joint_call_{chrom}.DP.filt.txt", chrom=CHROMOSOMES),
-        expand(TMP_DIR + "/count_info/joint_call_{chrom}.AD.filt.txt", chrom=CHROMOSOMES),
         expand(TMP_DIR + "/count_info/alternate_counts_{chrom}.txt", chrom=CHROMOSOMES),
         expand(TMP_DIR + "/count_info/reference_counts_{chrom}.txt", chrom=CHROMOSOMES)
 
@@ -234,10 +232,12 @@ rule filter_snps:
         {params.gatk_dir} --java-options "-Xmx{params.java_mem}" VariantFiltration \
         -R {params.ref_dir} \
         -V {input.vcf} \
-       --filterExpression "QUAL < 20.0" --filterExpression "QD < 2.0" --filterExpression "FS > 60.0" \
-        --filterExpression "MQ < 35.0" --filterExpression "MQRankSum < -12.5" --filterExpression "ReadPosRankSum < -8.0" \
-        --filterName "LowQual" --filterName "LowQD" --filterName "HighFS" --filterName "LowMQ" \
-        --filterName "LowMQRankSum" --filterName "LowReadPosRankSum" \
+        --filter-expression "QUAL < 20.0" --filter-name "LowQual" \
+        --filter-expression "QD < 2.0" --filter-name "LowQD" \
+        --filter-expression "FS > 60.0" --filter-name "HighFS" \
+        --filter-expression "MQ < 35.0" --filter-name "LowMQ" \
+        --filter-expression "MQRankSum < -12.5" --filter-name "LowMQRankSum" \
+        --filter-expression "ReadPosRankSum < -8.0" --filter-name "LowReadPosRankSum" \
         -O {output.filtered_vcf}
         """
 
@@ -266,7 +266,7 @@ rule combine_vcfs:
     input:
         lambda wildcard: [TMP_DIR + "/{}_filtered_excluded.vcf".format(interval) for interval in INTERVALS if interval.startswith(wildcard.chrom)]
     output:
-        combined_vcf= RESULTS_DIR + "/{chrom}.combined.vcf"
+        combined_vcf= RESULTS_DIR + "/{chrom}.raw.combined.vcf.gz"
     params:
         gatk_dir = GATK_DIR,
         java_mem = "196g",
@@ -283,27 +283,27 @@ rule filter_snps_after_merge:
     conda:
         "crvi_env.yml"
     input:
-        vcf= rules.combine_vcfs.output.combined_vcf
+        vcf = rules.combine_vcfs.output.combined_vcf
     output:
-        vcf_gz = RESULTS_DIR + "/{chrom}.filtered.combined.vcf.gz"
+        regions_vcf = RESULTS_DIR + "/{chrom}.filtered.combined.vcf.gz"
     params:
         out_DIR = RESULTS_DIR
     shell:
         r"""
-        plink --vcf {input.vcf} --allow-extra-chr --maf 0.01 --set-missing-var-ids @:#:\$1,\$2 --indep-pairwise 200 25 0.9 --geno 0.75 --biallelic-only strict --double-id --recode vcf --out {params.out_DIR}/joint_call_{wildcards.chrom}.SNPs.PASS
-        sed -e 's/:\t/\\t/g' {params.out_DIR}/joint_call_{wildcards.chrom}.SNPs.PASS.prune.in | awk '{{OFS="\t";print $$1,$$2-1,$$2}}' > {params.out_DIR}/joint_call_{wildcards.chrom}.SNPs.PASS.bed
-
-        bgzip {params.out_DIR}/joint_call_{wildcards.chrom}.SNPs.PASS.vcf
-        tabix -p vcf {params.out_DIR}/joint_call_{wildcards.chrom}.SNPs.PASS.vcf.gz
-
-        bcftools filter -e "QUAL < 20" --threads 4 -R {params.out_DIR}/joint_call_{wildcards.chrom}.SNPs.PASS.bed -O z -o {output.vcf_gz} {params.out_DIR}/joint_call_{wildcards.chrom}.SNPs.PASS.vcf.gz
+        tabix -p vcf -f {input.vcf} && \
+        plink --vcf {input.vcf} --double-id --allow-extra-chr --maf 0.05 --set-missing-var-ids '@:#:$1,$2' --indep-pairwise 500 50 0.5 --geno 0.75 --biallelic-only strict --recode vcf --out {params.out_DIR}/joint_call_{wildcards.chrom}.SNPs.PASS && \
+        sed -e 's/:\t/\t/g' {params.out_DIR}/joint_call_{wildcards.chrom}.SNPs.PASS.prune.in | awk -F: '{{OFS="\t";print $1,$2-1,$2}}' > {params.out_DIR}/joint_call_{wildcards.chrom}.SNPs.PASS.bed && \
+        bgzip {params.out_DIR}/joint_call_{wildcards.chrom}.SNPs.PASS.vcf && \
+        tabix -p vcf {params.out_DIR}/joint_call_{wildcards.chrom}.SNPs.PASS.vcf.gz && \
+        bcftools filter -e "QUAL < 20" --threads 4 -R {params.out_DIR}/joint_call_{wildcards.chrom}.SNPs.PASS.bed -O z -o {output.regions_vcf} {input.vcf} && \
+        tabix -p vcf {output.regions_vcf}
         """
-
 
 
 rule extract_counts:
     input:
-        vcf_file = RESULTS_DIR + "/{chrom}.filtered.combined.vcf.gz",
+        vcf_file = rules.combine_vcfs.output.combined_vcf,
+        regions = rules.filter_snps_after_merge.output.regions_vcf
     output:
         out_file1 = TMP_DIR + "/count_info/joint_call_{chrom}.DP.filt.txt",
         out_file2 = TMP_DIR + "/count_info/joint_call_{chrom}.AD.filt.txt"
@@ -311,12 +311,11 @@ rule extract_counts:
         r"""
         module load bcftools && \
         mkdir -p {TMP_DIR}/count_info && \
-        bcftools query -f '[%CHROM:%POS\t%SAMPLE\t%DP\n]' {input.vcf_file} | sed 's/,/\t/g' > {TMP_DIR}/count_info/joint_call_{wildcards.chrom}.DP.txt && \
-        bcftools query -f '[%CHROM:%POS\t%SAMPLE\t%AD\n]' {input.vcf_file} | sed 's/,/\t/g' > {TMP_DIR}/count_info/joint_call_{wildcards.chrom}.AD.txt && \
+        bcftools query -f '[%CHROM:%POS\t%SAMPLE\t%DP\n]' --regions-file {input.regions} {input.vcf_file} | sed 's/,/\t/g' > {TMP_DIR}/count_info/joint_call_{wildcards.chrom}.DP.txt && \
+        bcftools query -f '[%CHROM:%POS\t%SAMPLE\t%AD\n]' --regions-file {input.regions} {input.vcf_file} | sed 's/,/\t/g' > {TMP_DIR}/count_info/joint_call_{wildcards.chrom}.AD.txt && \
         awk '{{OFS="\t"; if ($3>0) print $1,$2,$3}}' {TMP_DIR}/count_info/joint_call_{wildcards.chrom}.DP.txt > {output.out_file1} && \
         awk '{{OFS="\t"; if ($3>0 || $4>0) print $1,$2,$3,$4}}' {TMP_DIR}/count_info/joint_call_{wildcards.chrom}.AD.txt > {output.out_file2}
         """
-
 
 rule process_counts:
     input:

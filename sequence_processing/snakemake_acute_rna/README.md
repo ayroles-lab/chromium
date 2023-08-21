@@ -1,1 +1,1 @@
-# 
+STAR --runThreadN 64 --runMode genomeGenerate --genomeDir star/ --genomeFastaFiles dmel-all-chromosome-r6.49.fasta --sjdbGTFfile dmel-all-r6.49.gtf --genomeSAindexNbases 12

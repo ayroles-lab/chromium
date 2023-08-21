@@ -4,10 +4,10 @@ library(tidyverse)
 
 args = commandArgs(trailingOnly=TRUE)
 file_number <- as.integer(args[1])
-file_number = 1
-
-alt_count_files <- list.files(path="/Genomics/ayroleslab2/scott/git/chromium/data/counts_matrices/", pattern = "alternate_counts*", full.names=TRUE)
-ref_count_files <- list.files(path="/Genomics/ayroleslab2/scott/git/chromium/data/counts_matrices/", pattern = "reference_counts_*", full.names=TRUE)
+file_number = 5 # Remove
+ 
+alt_count_files <- list.files(path="/Genomics/ayroleslab2/scott/git/chromium/data/snakemake_tmp/count_info", pattern = "alternate_counts*", full.names=TRUE)
+ref_count_files <- list.files(path="/Genomics/ayroleslab2/scott/git/chromium/data/snakemake_tmp/count_info", pattern = "reference_counts_*", full.names=TRUE)
 
 # fread is faster than read.table
 alt_count_data <- read.table(alt_count_files[file_number], header=TRUE, sep="\t", row.names=1)
@@ -23,11 +23,20 @@ info = info[order(info$name),]
 both_count_data = both_count_data[,order(colnames(both_count_data))]
 alt_count_data = alt_count_data[,order(colnames(alt_count_data))]
 
+colnames(both_count_data) = gsub('X2428__','',colnames(both_count_data))
+colnames(alt_count_data) = gsub('X2428__','',colnames(alt_count_data))
+
+# If we dropped any individuals, we need to drop them from the info file
+info = info[info$name %in% colnames(both_count_data),]
+
+
+
 # Filter snp data to only include SNPs with non-zero alts
 filter <- rowSums(alt_count_data,na.rm=TRUE) == 0 | apply(alt_count_data,1,function(x) all(is.na(x)))
 alt_count_data <- alt_count_data[!filter,]
 both_count_data <- both_count_data[!filter,]
 
+# 
 coef_betabin <- matrix(nrow=dim(alt_count_data)[1],ncol=2)
 
 # Number of permutations
@@ -35,9 +44,8 @@ B <- 10
 plouf <- CJ(it = 1:B) 
 
 library(tictoc)
-number_of_loci = dim(alt_count_data)[1]
-# number_of_loci = 10
-# pb = txtProgressBar(min=0,max=dim(alt_count_data)[1],style=3)
+# number_of_loci = dim(alt_count_data)[1]
+number_of_loci = 10000
 output_mat = matrix(nrow=number_of_loci,ncol=8)
 colnames(output_mat) <- c("obs_ctrl","pval_ctrl","obs_crvi","pval_crvi","obs_contrast","pval_contrast","emp_fdr_pvalthresh_05","significant")
 tic()

@@ -49,3 +49,5 @@ plink --vcf /Genomics/ayroleslab2/scott/git/chromium/data/snakemake_results/4.co
 
 
 module load R && Rscript --vanilla /Genomics/ayroleslab2/scott/git/chromium/sequence_processing/snakemake/process_counts.R /Genomics/ayroleslab2/scott/git/chromium/data/snakemake_tmp/count_info/joint_call_4.AD.filt.txt /Genomics/ayroleslab2/scott/git/chromium/data/snakemake_tmp/count_info/joint_call_4.DP.filt.txt /Genomics/ayroleslab2/scott/git/chromium/data/snakemake_tmp/count_info/alternate_counts_4.txt /Genomics/ayroleslab2/scott/git/chromium/data/snakemake_tmp/count_info/reference_counts_4.txt
+
+        sed -e 's/:\t/\\t/g' {params.out_DIR}/joint_call_4.SNPs.PASS.prune.in | awk '{OFS="\t";print $$1,$$2-1,$$2}' > {params.out_DIR}/joint_call_{wildcards.chrom}.SNPs.PASS.bed

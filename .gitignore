@@ -12,3 +12,5 @@ sequence_processing/snakemake/logs
 *.bam
 *.err
 *.out
+sequence_processing/snakemake_acute_rna/.snakemake/
+sequence_processing/snakemake_acute_rna/logs
