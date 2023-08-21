@@ -4,14 +4,16 @@ library(tidyverse)
 library(rio)
 library(ggplot2)
 library(qqman)
+library(ggman)
 
 args = commandArgs(trailingOnly=TRUE)
-file_number =  <- as.integer(args[1])
+file_number <- as.integer(args[1])
+file_number = 5 # Remove
 
-list_of_betabin_output_files <- list.files(path="/Genomics/ayroleslab2/scott/git/chromium/data", pattern = ".*betabin_gc_.*", full.names=TRUE)
+list_of_betabin_output_files <- list.files(path="/Genomics/ayroleslab2/scott/git/chromium/data/betabin_contrast_w_perm/", pattern = "betabin_perm_output_10perm_fdr010*", full.names=TRUE)
 betabin_outputs <- lapply(list_of_betabin_output_files, function(x) {import(x, format="csv")})
 betabin_outputs <- do.call(rbind, betabin_outputs)
-betabin_df <- as.data.frame(betabin_outputs)
+betabin_df <- as.data.frame(betabin_outputs, stringsAsFactors = FALSE)
 
 betabin_df$chr <- sub(":.*", "", betabin_df$SNP)
 betabin_df$BP <- as.numeric(sub(".*:", "", betabin_df$SNP))
@@ -34,14 +36,14 @@ for (window_size in window_sizes) {
   } else {
     betabin_df_windowed <- betabin_df
   }
-betabin_df_windowed$chr <- as.numeric(factor(betabin_df_windowed$chr))
+
+  betabin_df_windowed$chr <- as.numeric(factor(betabin_df_windowed$chr, levels=drosophila_chromosomes))
   for (pval_col in pval_cols) {
-	betabin_df_windowed[[pval_col]] <- sapply(betabin_df_windowed[[pval_col]], function(x) ifelse(is.finite(x), x, NA))
+    betabin_df_windowed[[pval_col]] <- sapply(betabin_df_windowed[[pval_col]], function(x) ifelse(is.finite(x), x, NA))
 
     # Manhattan plot
-    png(paste0("figures/manhattan_plot_", pval_col, "_window_", window_size, ".jpg"))
-    manhattan(betabin_df_windowed, chr="chr", bp="BP", p=pval_col, snp="SNP", col=c("blue4", "orange3"), ylim = c(0, 20))
-    dev.off()
+    ggman(betabin_df_windowed, chrom="chr", bp="BP", pvalue="obs_crvi", snp="SNP_location", col=c("blue4", "orange3"))
+    ggsave(filename=paste0("figures/manhattan_plot_", pval_col, "_window_", window_size, ".jpg"), width=10, height=10, units="in")
 
     # QQ plot
     png(paste0("figures/", pval_col, "_qqplot_window_", window_size, ".jpg"))
@@ -49,3 +51,5 @@ betabin_df_windowed$chr <- as.numeric(factor(betabin_df_windowed$chr))
     dev.off()
   }
 }
+
+
