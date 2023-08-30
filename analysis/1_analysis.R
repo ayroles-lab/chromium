@@ -1,14 +1,8 @@
 library(data.table)
-library(aod)
 library(tidyverse)
 library(rio)
 library(ggplot2)
-library(qqman)
-library(ggman)
 
-args = commandArgs(trailingOnly=TRUE)
-# file_number <- as.integer(args[1])
-# file_number = 5 # Remove
 
 list_of_betabin_output_files <- list.files(path="/Genomics/ayroleslab2/scott/git/chromium/data/20230823_betabin_contrast_w_perm/", pattern = "betabin_perm_output_10perm_fdr010*", full.names=TRUE)
 betabin_outputs <- lapply(list_of_betabin_output_files, function(x) {import(x, format="csv")})
