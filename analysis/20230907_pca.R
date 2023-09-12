@@ -22,11 +22,11 @@ row.names(ref_mat) <- ref_count_data$site
 
 
 # Read the info file
-info = read_csv('/Genomics/ayroleslab2/scott/git/chromium/individual_metadata.csv')
+info = read_csv('/Genomics/ayroleslab2/scott/git/chromium/metadata/longevity_dna_individual_metadata.csv')
 info$name = gsub('2428__','',info$indiv)
 
 colnames(alt_mat) <- info$name
-info$group = paste0(info$plate,"_",info$treatment)
+info$group = paste0(info$cage,"_",info$treatment)
 
 # Calculate Allele Frequency
 calculate_AF <- function(alt, ref) {
@@ -42,8 +42,13 @@ get_AF_for_site_group <- function(site_index, group) {
   
   alt_counts <- alt_mat[site_index, inds]
   ref_counts <- ref_mat[site_index, inds]
+
+  # Randomly draw allele for each individual
+  p = alt_counts / (alt_counts + ref_counts)
+  drawn_alleles = rbinom(length(p), 1, p)
   
-  return(calculate_AF(alt = alt_counts, ref = ref_counts))
+  # Use the drawn alleles to compute allele frequency
+  return(calculate_AF(alt = drawn_alleles, ref = 1-drawn_alleles))
 }
 
 # Calculate allele frequencies for each combination of site and group
@@ -83,14 +88,27 @@ rownames(AF_matrix) <- wide_result$site
 
 # Drop rows with NAs
 AF_matrix <- AF_matrix[complete.cases(AF_matrix), ]
-# PCA on the matrix
 
-pca <- prcomp(AF_matrix, scale = FALSE)
+# Run PCA on the transposed AF_matrix
+pca_result <- prcomp(t(AF_matrix))
 
-library(ggfortify)
-# Plot the results
-png('/Genomics/ayroleslab2/scott/git/chromium/analysis/figures/pca.png')
+# Convert PCA results to a data frame for ggplot
+pca_df <- as.data.frame(pca_result$x)
 
-autoplot(pca)
-dev.off()
+# Add groups to the data frame (this time, directly extracted from the column names)
+pca_df$group <- factor(colnames(AF_matrix))
+df <- data.frame(x = colnames(AF_matrix))
+df <- df %>% separate(x,sep="_", into = c("cage", "treatment"))
+pca_df <- cbind(pca_df, df)
+
+# Plot the first two principal components
+ggplot(pca_df, aes(x = PC1, y = PC2, color = treatment,shape=cage, group = treatment)) +
+  # stat_ellipse() +
+  geom_point(size = 3, alpha = 0.7) +
+  theme_minimal() +
+  labs(title = "PCA of Allele Frequencies", x = "PC1", y = "PC2") +
+  theme(legend.position = "bottom")
+
+ggsave("/Genomics/ayroleslab2/scott/git/chromium/analysis/figures/pca_colored.jpeg")
+
 
