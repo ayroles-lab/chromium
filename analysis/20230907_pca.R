@@ -38,7 +38,7 @@ calculate_AF <- function(alt, ref) {
 
 # Function to get allele frequency for a specific site and group
 get_AF_for_site_group <- function(site_index, group) {
-  inds <- which(info$group == group)  # Indices of individuals in the group
+  inds <- which(info$plate == group)  # Indices of individuals in the group
   
   alt_counts <- alt_mat[site_index, inds]
   ref_counts <- ref_mat[site_index, inds]
@@ -52,7 +52,7 @@ get_AF_for_site_group <- function(site_index, group) {
 }
 
 # Calculate allele frequencies for each combination of site and group
-groups <- unique(info$group)
+groups <- unique(info$plate)
 sites <- row.names(ref_mat)
 
 # Using expand.grid to get every combination of site and group
@@ -102,7 +102,7 @@ df <- df %>% separate(x,sep="_", into = c("cage", "treatment"))
 pca_df <- cbind(pca_df, df)
 
 # Plot the first two principal components
-ggplot(pca_df, aes(x = PC1, y = PC2, color = treatment,shape=cage, group = treatment)) +
+ggplot(pca_df, aes(x = PC1, y = PC2, color = group)) +
   # stat_ellipse() +
   geom_point(size = 3, alpha = 0.7) +
   theme_minimal() +
@@ -112,3 +112,4 @@ ggplot(pca_df, aes(x = PC1, y = PC2, color = treatment,shape=cage, group = treat
 ggsave("/Genomics/ayroleslab2/scott/git/chromium/analysis/figures/pca_colored.jpeg")
 
 
+summary(pca_result)
