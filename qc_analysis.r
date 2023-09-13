@@ -1,3 +1,4 @@
+install.packages("tidyverse")
 library(tidyverse)
 library(ggplot2)
 df <- read_tsv("barcode_splitter_from_htseq.out")
