@@ -20,9 +20,6 @@ row.names(alt_mat) <- alt_count_data$site
 row.names(ref_mat) <- ref_count_data$site
 
 
-
-
-
 # Read the info file
 info = read_csv('/Genomics/ayroleslab2/scott/git/chromium/metadata/longevity_dna_individual_metadata.csv')
 info$name = gsub('2428__','',info$indiv)
@@ -30,8 +27,11 @@ info$name = gsub('2428__','',info$indiv)
 colnames(alt_mat) <- info$name
 colnames(ref_mat) <- info$name
 
-# Drop plates Chrom_31_9, Chrom_31_8
-filtered_info <- info %>% filter(!(plate %in% c("Chrom_31_5","Chrom_31_6","Chrom_31_7","Chrom_31_8","Chrom_31_9")))
+
+# -------------------------------
+
+# Drop plates
+filtered_info <- info %>% filter(!(plate %in% c("Chrom_31_7","Chrom_31_8","Chrom_31_9")))
 
 ref_mat <- ref_mat[, filtered_info$name]
 alt_mat <- alt_mat[, filtered_info$name]
@@ -114,17 +114,17 @@ pca_df$group <- factor(colnames(AF_matrix))
 df <- data.frame(x = colnames(AF_matrix))
 df <- df %>% separate(x,sep="_", into = c("cage", "treatment"))
 pca_df <- cbind(pca_df, df)
+pve <- round(pca_result$sdev^2 / sum(pca_result$sdev^2) * 100, 1)
 
 # Plot the first two principal components
 ggplot(pca_df, aes(x = PC1, y = PC2, color = group)) +
-  # stat_ellipse() +
   geom_point(size = 3, alpha = 0.7) +
   theme_minimal() +
-  labs(title = "PCA of Allele Frequencies", x = "PC1", y = "PC2") +
+  labs(title = "PCA of Allele Frequencies -- Grouped by Plate", x = paste0("PC1 (", pve[1], "%)"), y = paste0("PC2 (", pve[2], "%)")) +
   theme(legend.position = "bottom") +
-  geom_label(aes(label = group), nudge_x = 0.1, nudge_y = 0.1, size = 3) +
+  geom_label(aes(label = group), nudge_x = 0.1, nudge_y = 0.1, size = 3)
 
-ggsave("/Genomics/ayroleslab2/scott/git/chromium/analysis/figures/pca_colored.jpeg", width = 10, height = 10, units = "in")
+ggsave("/Genomics/ayroleslab2/scott/git/chromium/analysis/figures/pca_af_plates_689_removed.jpeg", width = 10, height = 10, units = "in")
 
 
 summary(pca_result)
