@@ -10,7 +10,7 @@ args = commandArgs(trailingOnly=TRUE)
 # file_number <- as.integer(args[1])
 # file_number = 5 # Remove
 
-list_of_betabin_output_files <- list.files(path="/Genomics/ayroleslab2/scott/git/chromium/data/20230823_betabin_contrast_w_perm/", pattern = "betabin_perm_output_10perm_fdr010*", full.names=TRUE)
+list_of_betabin_output_files <- list.files(path="/Genomics/ayroleslab2/scott/git/chromium/data/20231025_betabin_contrast_w_perm/", pattern = "betabin_perm_output_10perm_fdr010*", full.names=TRUE)
 betabin_outputs <- lapply(list_of_betabin_output_files, function(x) {import(x, format="csv")})
 betabin_outputs <- do.call(rbind, betabin_outputs)
 betabin_df <- as.data.frame(betabin_outputs, stringsAsFactors = FALSE)
@@ -44,10 +44,10 @@ for (window_size in window_sizes) {
     # Manhattan plot
     print(paste0("figures/manhattan_plot_", pval_col, "_window_", window_size, ".jpg"))
     ggman(betabin_df_windowed, chrom="chr", bp="BP", pvalue=pval_col, snp="SNP_location")
-    ggsave(filename=paste0("figures/manhattan_plot_", pval_col, "_window_", window_size, ".jpg"), width=10, height=10, units="in")
+    ggsave(filename=paste0("figures/6789_removed_manhattan_plot_", pval_col, "_window_", window_size, ".jpg"), width=10, height=10, units="in")
 
     # QQ plot
-    png(paste0("figures/", pval_col, "_qqplot_window_", window_size, ".jpg"))
+    png(paste0("figures/6789_removed_", pval_col, "_qqplot_window_", window_size, ".jpg"))
     qq(betabin_df_windowed[[pval_col]])
     dev.off()
   }

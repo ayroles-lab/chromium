@@ -5,7 +5,7 @@ library(tictoc)
 
 args = commandArgs(trailingOnly=TRUE)
 file_number <- as.integer(args[1])
-# file_number = 4 # Remove
+# file_number = 5 # Remove
  
 alt_count_files <- list.files(path="/Genomics/ayroleslab2/scott/git/chromium/data/snakemake_tmp/count_info", pattern = "alternate_counts*", full.names=TRUE)
 ref_count_files <- list.files(path="/Genomics/ayroleslab2/scott/git/chromium/data/snakemake_tmp/count_info", pattern = "reference_counts_*", full.names=TRUE)
@@ -17,19 +17,26 @@ ref_count_data <- read.table(ref_count_files[file_number], header=TRUE, sep="\t"
 both_count_data <- alt_count_data + ref_count_data
 
 
-info=read_csv('/Genomics/ayroleslab2/scott/git/chromium/individual_metadata.csv')
+info=read_csv('/Genomics/ayroleslab2/scott/git/chromium/metadata/longevity_dna_individual_metadata.csv')
 info$name = gsub('2428__','',info$indiv)
 
 info = info[order(info$name),]
 both_count_data = both_count_data[,order(colnames(both_count_data))]
 alt_count_data = alt_count_data[,order(colnames(alt_count_data))]
-
 colnames(both_count_data) = gsub('X2428__','',colnames(both_count_data))
 colnames(alt_count_data) = gsub('X2428__','',colnames(alt_count_data))
+
+# Drop plates
+filtered_info <- info %>% filter(!(plate %in% c("Chrom_31_6","Chrom_31_7","Chrom_31_8","Chrom_31_9")))
+both_count_data <- both_count_data[,colnames(both_count_data) %in% filtered_info$name]
+alt_count_data <- alt_count_data[,colnames(alt_count_data) %in% filtered_info$name]
 
 # If we dropped any individuals, we need to drop them from the info file
 info = info[info$name %in% colnames(both_count_data),]
 
+# print shape
+print(paste0("Number of individuals: ", dim(both_count_data)[2]))
+print(paste0("Number of SNPs: ", dim(both_count_data)[1]))
 
 # Filter snp data to only include SNPs with non-zero alts
 filter <- rowSums(alt_count_data,na.rm=TRUE) == 0 | apply(alt_count_data,1,function(x) all(is.na(x)))
@@ -103,4 +110,4 @@ for (i in 1:number_of_loci){
 }
 toc()
 
-write.table(output_mat, file=paste0("/Genomics/ayroleslab2/scott/git/chromium/data/20230823_betabin_contrast_w_perm/betabin_perm_output_10perm_fdr010_",file_number,".csv"), sep=",", row.names=FALSE, col.names=TRUE)
+write.table(output_mat, file=paste0("/Genomics/ayroleslab2/scott/git/chromium/data/20231025_betabin_contrast_w_perm/betabin_perm_output_10perm_fdr010_",file_number,".csv"), sep=",", row.names=FALSE, col.names=TRUE)
